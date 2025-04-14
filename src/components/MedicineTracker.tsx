@@ -1,17 +1,32 @@
-
 import { useState } from 'react';
 import { Search, ArrowRight, Factory, Truck, Hospital, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useWeb3 } from '@/contexts/Web3Context';
+import { ethers } from 'ethers';
 
 const MedicineTracker = () => {
   const [searchId, setSearchId] = useState('');
   const [isSearched, setIsSearched] = useState(false);
+  const { account, connectWallet, contract, isConnected } = useWeb3();
   
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchId) {
-      setIsSearched(true);
+    if (!searchId) return;
+
+    if (!isConnected) {
+      await connectWallet();
+      return;
+    }
+
+    try {
+      if (contract) {
+        const medicineDetails = await contract.getMedicineDetails(searchId);
+        console.log('Medicine details:', medicineDetails);
+        setIsSearched(true);
+      }
+    } catch (error) {
+      console.error('Error fetching medicine details:', error);
     }
   };
 
@@ -28,21 +43,38 @@ const MedicineTracker = () => {
         </div>
         
         <div className="max-w-3xl mx-auto mb-16">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input 
-                type="text"
-                placeholder="Enter medicine ID or batch number"
-                className="pl-10"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="bg-pharma-purple hover:bg-pharma-blue">
-              Track Medicine
-            </Button>
-          </form>
+          <div className="flex flex-col gap-4">
+            {!isConnected && (
+              <Button 
+                onClick={connectWallet}
+                className="bg-pharma-purple hover:bg-pharma-blue w-full md:w-auto"
+              >
+                Connect Wallet
+              </Button>
+            )}
+            
+            {isConnected && (
+              <div className="text-sm text-gray-600 text-center mb-2">
+                Connected: {account?.slice(0, 6)}...{account?.slice(-4)}
+              </div>
+            )}
+
+            <form onSubmit={handleSearch} className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input 
+                  type="text"
+                  placeholder="Enter medicine ID or batch number"
+                  className="pl-10"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="bg-pharma-purple hover:bg-pharma-blue">
+                Track Medicine
+              </Button>
+            </form>
+          </div>
         </div>
         
         {isSearched && (
