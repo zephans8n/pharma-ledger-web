@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
@@ -182,4 +181,3 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useWeb3 = () => useContext(Web3Context);
-
