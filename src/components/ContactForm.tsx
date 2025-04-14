@@ -1,10 +1,17 @@
-
 import { useState } from 'react';
 import { Send, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+
+interface FormData {
+  name: string;
+  email: string;
+  company: string;
+  message: string;
+  timestamp: number;
+}
 
 const ContactForm = () => {
   const { toast } = useToast();
@@ -15,7 +22,6 @@ const ContactForm = () => {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -29,27 +35,45 @@ const ContactForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
+    try {
+      // Get existing submissions or initialize empty array
+      const existingSubmissions = JSON.parse(localStorage.getItem('contactSubmissions') || '[]');
+      
+      // Create new submission with timestamp
+      const newSubmission: FormData = {
+        ...formData,
+        timestamp: Date.now()
+      };
+      
+      // Add new submission to array
+      existingSubmissions.push(newSubmission);
+      
+      // Save back to localStorage
+      localStorage.setItem('contactSubmissions', JSON.stringify(existingSubmissions));
       
       toast({
         title: "Message sent successfully!",
-        description: "We'll get back to you as soon as possible.",
+        description: "Your message has been saved. We'll get back to you soon.",
+        duration: 5000,
       });
       
-      // Reset form after a delay
-      setTimeout(() => {
-        setFormData({
-          name: '',
-          email: '',
-          company: '',
-          message: ''
-        });
-        setIsSubmitted(false);
-      }, 3000);
-    }, 1500);
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        company: '',
+        message: ''
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was a problem saving your message. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,101 +110,87 @@ const ContactForm = () => {
             </div>
             
             <div className="md:w-3/5 bg-white p-10">
-              {isSubmitted ? (
-                <div className="h-full flex flex-col items-center justify-center text-center py-10">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Send us a message</h3>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name
+                    </label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full"
+                    />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
-                  <p className="text-gray-600 mb-6">
-                    Thank you for contacting us. We'll get back to you as soon as possible.
-                  </p>
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Send us a message</h3>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                          Full Name
-                        </label>
-                        <Input
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          required
-                          className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                          Email Address
-                        </label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          required
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-                        Company Name
-                      </label>
-                      <Input
-                        id="company"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                        Message
-                      </label>
-                      <Textarea
-                        id="message"
-                        name="message"
-                        rows={5}
-                        value={formData.message}
-                        onChange={handleChange}
-                        required
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="bg-pharma-purple hover:bg-pharma-blue text-white w-full"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Sending...
-                        </span>
-                      ) : (
-                        <span className="flex items-center">
-                          Send Message
-                          <Send className="ml-2 h-4 w-4" />
-                        </span>
-                      )}
-                    </Button>
-                  </form>
-                </>
-              )}
+                
+                <div>
+                  <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Name
+                  </label>
+                  <Input
+                    id="company"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                    Message
+                  </label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    rows={5}
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                    className="w-full"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="bg-pharma-purple hover:bg-pharma-blue text-white w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center">
+                      Send Message
+                      <Send className="ml-2 h-4 w-4" />
+                    </span>
+                  )}
+                </Button>
+              </form>
             </div>
           </div>
         </div>
